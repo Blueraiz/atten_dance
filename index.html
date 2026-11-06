@@ -1,243 +1,212 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Attendance Hub</title>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Attendance">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
-  
-  <!-- Tailwind CSS & Lucide Icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Attendance" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    /* iOS native fluid feel & safe area support */
-    :root {
-      --sat: env(safe-area-inset-top, 0px);
-      --sab: env(safe-area-inset-bottom, 0px);
-    }
+    /* iOS Safari Safe Area and smooth scrolling */
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      padding-top: var(--sat);
-      padding-bottom: calc(var(--sab) + 72px);
+      padding-bottom: env(safe-area-inset-bottom);
     }
-    
-    /* Custom clean scrollbars */
-    ::-webkit-scrollbar {
-      height: 4px;
-      width: 4px;
+    .safe-top {
+      padding-top: env(safe-area-inset-top);
     }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(156, 163, 175, 0.4);
-      border-radius: 9999px;
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
     }
-
-    /* Fixed table styling for the Monthly Grid */
-    .sticky-col-1 { position: sticky; left: 0; z-index: 20; }
-    .sticky-col-2 { position: sticky; left: 38px; z-index: 20; }
-    .sticky-col-3 { position: sticky; left: 110px; z-index: 20; }
-    .sticky-col-4 { position: sticky; left: 240px; z-index: 20; }
-    
-    .weekend-header {
-      background-color: #fee2e2 !important;
-      color: #991b1b !important;
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
-    .weekend-cell {
-      background-color: #e5e7eb !important;
-    }
-    .status-badge-p {
-      color: #1e3a8a;
-      font-weight: 700;
-    }
-    .status-badge-l {
-      color: #dc2626;
-      font-weight: 700;
-    }
-    .status-badge-2p {
-      color: #047857;
-      font-weight: 800;
-    }
+    /* Sticky matrix headers */
+    .sticky-col-1 { position: sticky; left: 0; z-index: 10; background-color: inherit; }
+    .sticky-col-2 { position: sticky; left: 40px; z-index: 10; background-color: inherit; }
+    .sticky-col-3 { position: sticky; left: 115px; z-index: 10; background-color: inherit; }
+    .sticky-header { position: sticky; top: 0; z-index: 20; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans select-none pb-20">
 
-  <!-- TOP HEADER -->
-  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center space-x-2">
-      <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
-        <i data-lucide="calendar-check" class="w-5 h-5"></i>
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 safe-top px-4 py-3 shadow-xs">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-indigo-100 shadow-md">
+          <i class="fa-solid fa-calendar-check text-sm"></i>
+        </div>
+        <div>
+          <h1 id="pageTitle" class="text-base font-bold text-slate-900 leading-tight">Daily Attendance</h1>
+          <p id="pageSubtitle" class="text-[11px] text-slate-500 font-medium">Today's active logs</p>
+        </div>
       </div>
-      <div>
-        <h1 class="text-base font-bold leading-tight text-slate-900" id="headerTitle">Daily Attendance</h1>
-        <p class="text-[11px] text-slate-500 font-medium" id="headerSubtitle">Today's active logs</p>
+      <div class="flex items-center gap-2">
+        <button onclick="fetchSheetData(true)" title="Quick Sync" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 active:scale-90 transition">
+          <i id="syncIcon" class="fa-solid fa-rotate text-xs"></i>
+        </button>
+        <span id="dataStatusIndicator" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          Live
+        </span>
       </div>
-    </div>
-    <div class="flex items-center space-x-2">
-      <button onclick="refreshData()" class="p-2 rounded-full hover:bg-slate-100 active:scale-95 transition text-slate-600">
-        <i data-lucide="refresh-cw" id="syncIcon" class="w-4 h-4"></i>
-      </button>
-      <span id="dataStatusIndicator" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-        Cached
-      </span>
     </div>
   </header>
 
-  <!-- MAIN VIEW CONTAINER -->
-  <main class="max-w-7xl mx-auto p-4 space-y-4">
+  <!-- Main Container -->
+  <main class="flex-1 max-w-4xl w-full mx-auto p-4">
 
-    <!-- TAB 1: DAILY LIVE ATTENDANCE -->
-    <section id="view-daily" class="space-y-4">
-      <!-- Date Picker & Filter Bar -->
-      <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-2 items-center justify-between">
-        <div class="flex items-center space-x-2 w-full sm:w-auto">
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Date:</label>
-          <input type="date" id="dailyDatePicker" class="bg-slate-100 border border-slate-200 text-slate-900 text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium" onchange="renderDailyView()">
-          <button onclick="setTodayDate()" class="text-xs font-semibold px-2.5 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg active:scale-95 transition">Today</button>
+    <!-- ==================================================== -->
+    <!-- TAB 1: DAILY VIEW -->
+    <!-- ==================================================== -->
+    <section id="tab-daily" class="tab-content block space-y-3">
+      <!-- Date Selector & Quick Jump -->
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Date:</span>
+          <input type="date" id="dailyDatePicker" class="bg-slate-100 text-slate-800 text-xs font-semibold px-2.5 py-1.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
-        <div class="relative w-full sm:w-56 mt-2 sm:mt-0">
-          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
-          <input type="text" id="dailySearch" placeholder="Search name or ID..." oninput="renderDailyView()" class="w-full bg-slate-100 border border-slate-200 pl-9 pr-3 py-1.5 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button onclick="jumpToToday()" class="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl active:scale-95 transition">
+          Today
+        </button>
+      </div>
+
+      <!-- Search Input -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input type="text" id="dailySearchInput" oninput="handleDailySearch()" placeholder="Search employee name or ID..." class="w-full bg-white text-xs pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs placeholder-slate-400" />
+      </div>
+
+      <!-- KPI Summary Cards (Clickable Filters) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div onclick="setDailyFilter('all')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs active:scale-95 transition">
+          <div class="text-[11px] text-slate-500 font-medium">Total Team</div>
+          <div id="kpi-total" class="text-xl font-bold text-slate-900 mt-0.5">0</div>
+        </div>
+        <div onclick="setDailyFilter('present')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/80 border-l-4 border-l-emerald-500 shadow-xs active:scale-95 transition">
+          <div class="text-[11px] text-slate-500 font-medium">Present</div>
+          <div id="kpi-present" class="text-xl font-bold text-emerald-600 mt-0.5">0</div>
+        </div>
+        <div onclick="setDailyFilter('leave')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/80 border-l-4 border-l-amber-500 shadow-xs active:scale-95 transition">
+          <div class="text-[11px] text-slate-500 font-medium">On Leave</div>
+          <div id="kpi-leave" class="text-xl font-bold text-amber-600 mt-0.5">0</div>
+        </div>
+        <div onclick="setDailyFilter('absent')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200/80 border-l-4 border-l-rose-500 shadow-xs active:scale-95 transition">
+          <div class="text-[11px] text-slate-500 font-medium">Absent / No Log</div>
+          <div id="kpi-absent" class="text-xl font-bold text-rose-600 mt-0.5">0</div>
         </div>
       </div>
 
-      <!-- KPI Metric Cards Grid -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
-          <div class="text-[11px] font-medium text-slate-500">Total Team</div>
-          <div class="text-xl font-bold text-slate-900 mt-1" id="kpiTotal">0</div>
-        </div>
-        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs border-l-4 border-l-emerald-500">
-          <div class="text-[11px] font-medium text-slate-500">Present (Complete)</div>
-          <div class="text-xl font-bold text-emerald-600 mt-1" id="kpiPresent">0</div>
-        </div>
-        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs border-l-4 border-l-amber-500">
-          <div class="text-[11px] font-medium text-slate-500">Missing Sign-Out</div>
-          <div class="text-xl font-bold text-amber-600 mt-1" id="kpiMissingOut">0</div>
-        </div>
-        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs border-l-4 border-l-rose-500">
-          <div class="text-[11px] font-medium text-slate-500">On Leave</div>
-          <div class="text-xl font-bold text-rose-600 mt-1" id="kpiLeave">0</div>
-        </div>
-        <div class="col-span-2 sm:col-span-1 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs border-l-4 border-l-slate-400">
-          <div class="text-[11px] font-medium text-slate-500">Absent / No Log</div>
-          <div class="text-xl font-bold text-slate-600 mt-1" id="kpiAbsent">0</div>
-        </div>
+      <!-- Filter Pills -->
+      <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <button id="pill-all" onclick="setDailyFilter('all')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shrink-0 active:scale-95 transition">
+          All (<span id="count-all">0</span>)
+        </button>
+        <button id="pill-present" onclick="setDailyFilter('present')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 shrink-0 active:scale-95 transition">
+          Present (<span id="count-present">0</span>)
+        </button>
+        <button id="pill-leave" onclick="setDailyFilter('leave')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 shrink-0 active:scale-95 transition">
+          On Leave (<span id="count-leave">0</span>)
+        </button>
+        <button id="pill-absent" onclick="setDailyFilter('absent')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 shrink-0 active:scale-95 transition">
+          Absent (<span id="count-absent">0</span>)
+        </button>
       </div>
 
-      <!-- Quick Filter Pills -->
-      <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 text-xs">
-        <button onclick="setFilter('ALL')" id="flt-ALL" class="px-3 py-1 rounded-full font-semibold bg-indigo-600 text-white shadow-xs">All (<span id="cnt-ALL">0</span>)</button>
-        <button onclick="setFilter('PRESENT')" id="flt-PRESENT" class="px-3 py-1 rounded-full font-medium bg-slate-200 text-slate-700">Present (<span id="cnt-PRESENT">0</span>)</button>
-        <button onclick="setFilter('MISSING')" id="flt-MISSING" class="px-3 py-1 rounded-full font-medium bg-slate-200 text-slate-700">Missing Out (<span id="cnt-MISSING">0</span>)</button>
-        <button onclick="setFilter('LEAVE')" id="flt-LEAVE" class="px-3 py-1 rounded-full font-medium bg-slate-200 text-slate-700">On Leave (<span id="cnt-LEAVE">0</span>)</button>
-        <button onclick="setFilter('ABSENT')" id="flt-ABSENT" class="px-3 py-1 rounded-full font-medium bg-slate-200 text-slate-700">Absent (<span id="cnt-ABSENT">0</span>)</button>
-      </div>
-
-      <!-- Roster List -->
-      <div class="space-y-2.5" id="dailyRosterContainer">
-        <!-- Injected via JavaScript -->
+      <!-- Employee List Container (Compact Layout) -->
+      <div id="dailyListContainer" class="space-y-2">
+        <!-- Rendered dynamically -->
       </div>
     </section>
 
-    <!-- TAB 2: MONTHLY TEAM MATRIX (Matches Sheet Image) -->
-    <section id="view-matrix" class="hidden space-y-4">
-      <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Month:</label>
-          <input type="month" id="matrixMonthPicker" class="bg-slate-100 border border-slate-200 text-slate-900 text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium" onchange="renderMatrixView()">
+    <!-- ==================================================== -->
+    <!-- TAB 2: MONTHLY OVERALL MATRIX -->
+    <!-- ==================================================== -->
+    <section id="tab-monthly" class="tab-content hidden space-y-3">
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Month:</span>
+          <input type="month" id="matrixMonthPicker" onchange="renderMatrixView()" class="bg-slate-100 text-slate-800 text-xs font-semibold px-2.5 py-1.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
-        <div class="flex items-center space-x-2 text-xs">
-          <span class="inline-flex items-center"><span class="w-2.5 h-2.5 bg-blue-900 rounded-sm mr-1"></span> P = Present</span>
-          <span class="inline-flex items-center"><span class="w-2.5 h-2.5 bg-emerald-600 rounded-sm mr-1"></span> 2P = Double</span>
-          <span class="inline-flex items-center"><span class="w-2.5 h-2.5 bg-rose-600 rounded-sm mr-1"></span> L = Leave</span>
-          <span class="inline-flex items-center"><span class="w-2.5 h-2.5 bg-slate-300 rounded-sm mr-1"></span> Sat/Sun</span>
+        <div class="text-[11px] text-slate-500 font-medium">
+          Scroll table horizontally 👉
         </div>
       </div>
 
-      <!-- Horizontal Scrollable Matrix Container -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto max-h-[72vh] relative">
-          <table class="w-full border-collapse text-xs text-center select-none" id="matrixTable">
-            <thead class="sticky top-0 z-30 bg-slate-100 uppercase text-slate-700 font-semibold" id="matrixThead">
-              <!-- Headers generated dynamically -->
-            </thead>
-            <tbody id="matrixTbody" class="divide-y divide-slate-200 font-medium">
-              <!-- Rows generated dynamically -->
-            </tbody>
+      <!-- Matrix Grid View (Replicating Reference Sheet) -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto max-h-[70vh] scrollbar-none">
+          <table id="matrixTable" class="w-full text-[11px] text-center border-collapse">
+            <!-- Headers and rows generated dynamically -->
           </table>
         </div>
       </div>
-      <div class="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1">
-        <i data-lucide="move-horizontal" class="w-3.5 h-3.5"></i> Swipe horizontally to see all days and summary counts
-      </div>
     </section>
 
-    <!-- TAB 3: INDIVIDUAL EMPLOYEE MONTHLY VIEW -->
-    <section id="view-employee" class="hidden space-y-4">
-      <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Select Employee:</label>
-          <select id="empSelector" class="w-full bg-slate-100 border border-slate-200 text-slate-900 text-sm rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500" onchange="renderIndividualView()">
-            <!-- Filled via JS -->
-          </select>
-        </div>
-        <div>
-          <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">Select Month:</label>
-          <input type="month" id="empMonthPicker" class="w-full bg-slate-100 border border-slate-200 text-slate-900 text-sm rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500" onchange="renderIndividualView()">
-        </div>
-      </div>
-
-      <!-- Employee Summary Cards -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-        <div class="bg-white p-3 rounded-2xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Working Days (M-F)</div>
-          <div class="text-lg font-bold text-slate-800 mt-1" id="indWorkingDays">0</div>
-        </div>
-        <div class="bg-white p-3 rounded-2xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Days Present</div>
-          <div class="text-lg font-bold text-emerald-600 mt-1" id="indDaysPresent">0</div>
-        </div>
-        <div class="bg-white p-3 rounded-2xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Leaves Taken</div>
-          <div class="text-lg font-bold text-rose-600 mt-1" id="indLeaves">0</div>
-        </div>
-        <div class="bg-white p-3 rounded-2xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Missing Logs</div>
-          <div class="text-lg font-bold text-amber-600 mt-1" id="indMissing">0</div>
-        </div>
-        <div class="col-span-2 sm:col-span-1 bg-white p-3 rounded-2xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Attendance Rate</div>
-          <div class="text-lg font-bold text-indigo-600 mt-1" id="indRate">0%</div>
+    <!-- ==================================================== -->
+    <!-- TAB 3: INDIVIDUAL EMPLOYEE VIEW -->
+    <!-- ==================================================== -->
+    <section id="tab-individual" class="tab-content hidden space-y-3">
+      <div class="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Select Employee</label>
+            <select id="individualEmpSelect" onchange="renderIndividualView()" class="w-full bg-slate-100 text-slate-800 text-xs font-semibold px-2.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Select Month</label>
+            <input type="month" id="individualMonthPicker" onchange="renderIndividualView()" class="w-full bg-slate-100 text-slate-800 text-xs font-semibold px-2.5 py-1.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
         </div>
       </div>
 
-      <!-- Day-by-Day Timeline / Card Breakdown -->
-      <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200">
-        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Daily Attendance Logs for Month</h3>
-        <div class="divide-y divide-slate-100" id="indDaysList">
-          <!-- Populated via JS -->
+      <!-- Individual Metrics Summary -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-white p-3 rounded-2xl border border-slate-200/80 text-center shadow-xs">
+          <div class="text-[10px] font-bold text-slate-400 uppercase">Days Present</div>
+          <div id="ind-present-count" class="text-lg font-bold text-emerald-600 mt-0.5">0</div>
+        </div>
+        <div class="bg-white p-3 rounded-2xl border border-slate-200/80 text-center shadow-xs">
+          <div class="text-[10px] font-bold text-slate-400 uppercase">Leaves</div>
+          <div id="ind-leave-count" class="text-lg font-bold text-amber-600 mt-0.5">0</div>
+        </div>
+        <div class="bg-white p-3 rounded-2xl border border-slate-200/80 text-center shadow-xs">
+          <div class="text-[10px] font-bold text-slate-400 uppercase">Attendance %</div>
+          <div id="ind-att-percent" class="text-lg font-bold text-indigo-600 mt-0.5">0%</div>
+        </div>
+      </div>
+
+      <!-- Day-by-Day Log List -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div class="p-3 border-b border-slate-100 font-bold text-xs text-slate-700 flex justify-between items-center">
+          <span>Monthly Log Details</span>
+          <span id="ind-shift-badge" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase font-semibold">DAY SHIFT</span>
+        </div>
+        <div id="individualLogContainer" class="divide-y divide-slate-100 max-h-[55vh] overflow-y-auto">
+          <!-- Populated dynamically -->
         </div>
       </div>
     </section>
 
-    <!-- TAB 4: SETTINGS & DATA CONFIGURATION -->
-    <section id="view-settings" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-        <div>
-          <h2 class="text-sm font-bold text-slate-900">Google Apps Script Webhook URL</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Paste your deployed Web App URL (`.../exec`) to sync live records directly from your sheet.</p>
-        </div>
-        
-        <div>
-          <input type="url" id="webhookInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-100 border border-slate-200 text-slate-900 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono">
-        </div>
-
-        <div class="flex items-center space-x-2">
-          <button onclick="saveWebhookUrl()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold active:scale-95 transition shadow-xs">
+    <!-- ==================================================== -->
+    <!-- TAB 4: SETTINGS & SYNC -->
+    <!-- ==================================================== -->
+    <section id="tab-settings" class="tab-content hidden space-y-3">
+      <!-- Webhook Configuration -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+        <h2 class="text-sm font-bold text-slate-900">Google Apps Script Webhook URL</h2>
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Paste your deployed Web App URL (<code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600">.../exec</code>) to sync live records directly from your sheet.
+        </p>
+        <input type="url" id="webhookInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-100 text-xs px-3 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" />
+        <div class="flex gap-2">
+          <button onclick="saveWebhookUrl()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold active:scale-95 transition shadow-sm">
             Save Webhook URL
           </button>
           <button onclick="fetchSheetData(true)" class="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-semibold active:scale-95 transition">
@@ -246,27 +215,30 @@
         </div>
       </div>
 
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
-        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Local Storage & Cache Info</h3>
+      <!-- Local Storage & Cache Info -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-2">
+        <h2 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Local Storage & Cache Info</h2>
         <div class="text-xs text-slate-600 space-y-1">
-          <div>Total Cached Rows: <strong id="cachedRowCount" class="text-slate-900">0</strong></div>
-          <div>Last Synchronized: <strong id="lastSyncTime" class="text-slate-900">Never</strong></div>
+          <div>Total Cached Rows: <strong id="cacheCountText" class="text-slate-900">0</strong></div>
+          <div>Last Synchronized: <strong id="lastSyncText" class="text-slate-900">Never</strong></div>
         </div>
-        <div class="pt-2 flex gap-2">
-          <button onclick="loadSampleData()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg active:scale-95 transition">
+        <div class="flex gap-2 pt-2">
+          <button onclick="loadSampleDataset()" class="px-3 py-1.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-xl active:scale-95 transition">
             Load Sample Dataset
           </button>
-          <button onclick="clearCache()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold rounded-lg active:scale-95 transition">
+          <button onclick="clearCache()" class="px-3 py-1.5 bg-rose-50 text-rose-600 text-xs font-semibold rounded-xl active:scale-95 transition">
             Clear Cached Data
           </button>
         </div>
       </div>
 
-      <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-xs text-indigo-900 space-y-2">
+      <!-- Home Screen Info -->
+      <div class="bg-indigo-50/60 p-4 rounded-2xl border border-indigo-100 text-xs text-indigo-900 space-y-1.5">
         <div class="font-bold flex items-center gap-1.5">
-          <i data-lucide="smartphone" class="w-4 h-4"></i> Add to iPhone Home Screen
+          <i class="fa-solid fa-mobile-screen-button"></i>
+          <span>Add to iPhone Home Screen</span>
         </div>
-        <p class="leading-relaxed text-indigo-800">
+        <p class="text-[11px] text-indigo-700 leading-relaxed">
           In Safari on iOS, tap the <strong>Share</strong> button (box with upward arrow) and select <strong>"Add to Home Screen"</strong>. This app launches full-screen like a native iOS application.
         </p>
       </div>
@@ -274,709 +246,753 @@
 
   </main>
 
-  <!-- BOTTOM SAFE-AREA NAVIGATION BAR (iPhone Tab Bar) -->
-  <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200 px-2 py-1.5" style="padding-bottom: max(6px, env(safe-area-inset-bottom));">
-    <div class="max-w-md mx-auto grid grid-cols-4 gap-1 text-center">
-      <button onclick="switchTab('daily')" id="tabBtn-daily" class="flex flex-col items-center justify-center py-1 text-indigo-600 transition">
-        <i data-lucide="user-check" class="w-5 h-5"></i>
-        <span class="text-[10px] font-semibold mt-0.5">Daily</span>
+  <!-- Bottom Navigation Bar (iOS style) -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 safe-bottom">
+    <div class="max-w-md mx-auto grid grid-cols-4 py-1.5">
+      <button onclick="switchTab('daily')" id="nav-daily" class="flex flex-col items-center justify-center py-1 text-indigo-600 transition">
+        <i class="fa-solid fa-user-clock text-base"></i>
+        <span class="text-[10px] font-semibold mt-1">Daily</span>
       </button>
-      <button onclick="switchTab('matrix')" id="tabBtn-matrix" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition">
-        <i data-lucide="grid-3x3" class="w-5 h-5"></i>
-        <span class="text-[10px] font-semibold mt-0.5">Monthly</span>
+      <button onclick="switchTab('monthly')" id="nav-monthly" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition">
+        <i class="fa-solid fa-table-cells text-base"></i>
+        <span class="text-[10px] font-semibold mt-1">Monthly</span>
       </button>
-      <button onclick="switchTab('employee')" id="tabBtn-employee" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition">
-        <i data-lucide="calendar" class="w-5 h-5"></i>
-        <span class="text-[10px] font-semibold mt-0.5">Individual</span>
+      <button onclick="switchTab('individual')" id="nav-individual" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition">
+        <i class="fa-regular fa-calendar-days text-base"></i>
+        <span class="text-[10px] font-semibold mt-1">Individual</span>
       </button>
-      <button onclick="switchTab('settings')" id="tabBtn-settings" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition">
-        <i data-lucide="settings" class="w-5 h-5"></i>
-        <span class="text-[10px] font-semibold mt-0.5">Settings</span>
+      <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition">
+        <i class="fa-solid fa-gear text-base"></i>
+        <span class="text-[10px] font-semibold mt-1">Settings</span>
       </button>
     </div>
   </nav>
 
-  <!-- APP SCRIPT & CONTROLLER -->
+  <!-- Application Logic -->
   <script>
-    // --- STATE CONFIGURATION ---
-    const STORAGE_KEY_LOGS = "whatapp_attendance_logs";
-    const STORAGE_KEY_WEBHOOK = "whatapp_attendance_webhook";
-    const STORAGE_KEY_SYNC = "whatapp_attendance_last_sync";
+    // Constants & Storage Keys
+    const STORAGE_KEY_WEBHOOK = 'attendance_webhook_url';
+    const STORAGE_KEY_LOGS = 'attendance_logs_cache';
+    const STORAGE_KEY_SYNC = 'attendance_last_sync';
+    const STORAGE_KEY_EMPLOYEES = 'attendance_employee_cache';
 
-    let currentActiveFilter = "ALL";
-    let activeTab = "daily";
-
-    // Master Team Roster matching your spreadsheet screenshot
-    const TEAM_MEMBERS = [
-      { id: "ZHZ0389", name: "JAYAPRAKASH S", shift: "DAY" },
-      { id: "ZHC0292", name: "SRIDHAR RAJAN.A", shift: "DAY" },
-      { id: "ZHC0293", name: "BHUVANESH S", shift: "DAY" },
-      { id: "ZHC0295", name: "ASIRVATHAM J", shift: "DAY" },
-      { id: "ZHC0317", name: "MAHESH S", shift: "DAY" },
-      { id: "ZHC0393", name: "T PRAVIN", shift: "DAY" },
-      { id: "ZHC0294", name: "PRAVEEN K", shift: "DAY" },
-      { id: "ZHC0318", name: "SAJITH S", shift: "DAY" },
-      { id: "ZHC0320", name: "KISHORE BALA", shift: "DAY" },
-      { id: "ZHC0325", name: "MOHAMED KAMIL A", shift: "DAY" },
-      { id: "ZHC0350", name: "KARTHINI BALAKRISHNAN", shift: "DAY" },
-      { id: "ZHC0360", name: "SHITHIK ASATH M", shift: "DAY" },
-      { id: "ZHC0380", name: "PRAKASH R", shift: "DAY" }
+    // Roster Definition with IDs and Shifts (Customizable via NameMapping sync)
+    const DEFAULT_ROSTER = [
+      { id: 'ZHZ0389', name: 'JAYAPRAKASH S', shift: 'DAY' },
+      { id: 'ZHC0292', name: 'SRIDHAR RAJAN.A', shift: 'DAY' },
+      { id: 'ZHC0293', name: 'BHUVANESH S', shift: 'DAY' },
+      { id: 'ZHC0295', name: 'ASIRVATHAM J', shift: 'DAY' },
+      { id: 'ZHC0317', name: 'MAHESH S', shift: 'NIGHT' },
+      { id: 'ZHC0393', name: 'T PRAVIN', shift: 'DAY' },
+      { id: 'ZHZ0114', name: 'KISHORE BALA', shift: 'NIGHT' },
+      { id: 'ZHZ0125', name: 'SAJITH S', shift: 'NIGHT' },
+      { id: 'ZHZ0230', name: 'PRAVEEN K', shift: 'DAY' },
+      { id: 'ZHZ0188', name: 'PRAKASH R', shift: 'DAY' },
+      { id: 'ZHZ0142', name: 'MOHAMED KAMIL A', shift: 'DAY' },
+      { id: 'ZHZ0155', name: 'KARTHINI BALAKRISHNAN', shift: 'DAY' },
+      { id: 'ZHZ0167', name: 'SHITHIK ASATH M', shift: 'DAY' }
     ];
 
-    // --- SAMPLE DEMO GENERATOR (Used on initial load or offline) ---
-    function generateDemoLogs() {
-      const logs = [];
-      const today = new Date();
-      // Generate logs for current and prior month
-      for (let offset = 0; offset <= 35; offset++) {
-        const d = new Date();
-        d.setDate(today.getDate() - offset);
-        
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const dateStr = `${y}-${m}-${day}`;
-        const dayOfWeek = d.getDay(); // 0 is Sun, 6 is Sat
+    let activeTab = 'daily';
+    let currentDailyFilter = 'all';
+    let dailySearchQuery = '';
 
-        TEAM_MEMBERS.forEach((emp, index) => {
-          // Weekend logic: occasionally double shift or off
-          if (dayOfWeek === 0 || dayOfWeek === 6) {
-            if (emp.name === "ASIRVATHAM J" && offset === 3) {
-              logs.push({ date: dateStr, name: emp.name, type: "Sign In", time: "08:30:00" });
-              logs.push({ date: dateStr, name: emp.name, type: "Sign Out", time: "18:00:00" });
-              logs.push({ date: dateStr, name: emp.name, type: "Sign In", time: "18:30:00" });
-              logs.push({ date: dateStr, name: emp.name, type: "Sign Out", time: "22:30:00" });
-            }
-            return;
-          }
-
-          // Leave simulations
-          if (emp.name === "BHUVANESH S" && (offset >= 10 && offset <= 13)) {
-            logs.push({ date: dateStr, name: emp.name, type: "Leave", time: "09:00:00", note: "Sick leave" });
-            return;
-          }
-          if (emp.name === "SRIDHAR RAJAN.A" && (offset === 15 || offset === 18)) {
-            logs.push({ date: dateStr, name: emp.name, type: "Leave", time: "09:00:00", note: "Casual leave" });
-            return;
-          }
-          if (emp.name === "MAHESH S" && offset === 26) {
-            logs.push({ date: dateStr, name: emp.name, type: "Leave", time: "09:00:00", note: "Leave" });
-            return;
-          }
-
-          // Random missing sign-outs for variety
-          if (offset === 0 && (emp.name === "JAYAPRAKASH S" || emp.name === "SRIDHAR RAJAN.A")) {
-            logs.push({ date: dateStr, name: emp.name, type: "Sign In", time: "08:28:32" });
-            return;
-          }
-
-          // Regular attendance
-          const inHour = 8 + (index % 2);
-          const inMin = 15 + ((index * 7) % 40);
-          const outHour = 17 + (index % 3);
-          const outMin = 10 + ((index * 5) % 45);
-
-          logs.push({
-            date: dateStr,
-            name: emp.name,
-            type: "Sign In",
-            time: `${String(inHour).padStart(2,'0')}:${String(inMin).padStart(2,'0')}:15`
-          });
-          logs.push({
-            date: dateStr,
-            name: emp.name,
-            type: "Sign Out",
-            time: `${String(outHour).padStart(2,'0')}:${String(outMin).padStart(2,'0')}:40`
-          });
-        });
-      }
-      return logs;
-    }
-
-    // --- DATA REPOSITORY ---
-    function getStoredLogs() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY_LOGS);
-        if (raw) return JSON.parse(raw);
-      } catch (e) {
-        console.error(e);
-      }
-      const initial = generateDemoLogs();
-      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(initial));
-      return initial;
-    }
-
-    function saveLogs(logs) {
-      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+    // ==========================================
+    // INITIALIZATION
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initDates();
+      loadStoredWebhook();
       updateCacheStats();
+
+      // If no logs in cache, load demo data so app is immediately functional
+      const cached = getStoredLogs();
+      if (!cached || cached.length === 0) {
+        loadSampleDataset(false);
+      } else {
+        renderAllViews();
+      }
+
+      // Auto-sync if webhook is saved
+      const webhook = localStorage.getItem(STORAGE_KEY_WEBHOOK);
+      if (webhook) {
+        fetchSheetData(false);
+      }
+    });
+
+    function initDates() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      const todayISO = `${yyyy}-${mm}-${dd}`;
+      const monthISO = `${yyyy}-${mm}`;
+
+      document.getElementById('dailyDatePicker').value = todayISO;
+      document.getElementById('dailyDatePicker').addEventListener('change', renderDailyView);
+
+      document.getElementById('matrixMonthPicker').value = monthISO;
+      document.getElementById('individualMonthPicker').value = monthISO;
     }
 
-    // --- FORMAT DATE HELPERS ---
-    function normalizeDateString(dateVal) {
-      if (!dateVal) return "";
-      if (typeof dateVal === "string" && dateVal.includes("T")) {
-        dateVal = dateVal.split("T")[0];
-      }
-      // If in MM-DD-YYYY or DD-MM-YYYY
-      const parts = String(dateVal).trim().split(/[-/]/);
-      if (parts.length === 3) {
-        if (parts[0].length === 4) {
-          // YYYY-MM-DD
-          return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-        } else if (parts[2].length === 4) {
-          // MM-DD-YYYY or DD-MM-YYYY -> Assume Month first for standard ISO
-          return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-        }
-      }
-      return dateVal;
+    function jumpToToday() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById('dailyDatePicker').value = `${yyyy}-${mm}-${dd}`;
+      renderDailyView();
     }
 
-    function calculateDuration(inTime, outTime) {
-      if (!inTime || !outTime || inTime === "-" || outTime === "-") return "-";
-      try {
-        const parseT = (t) => {
-          const [h, m, s] = t.split(":").map(Number);
-          return (h * 3600) + (m * 60) + (s || 0);
-        };
-        let diff = parseT(outTime) - parseT(inTime);
-        if (diff < 0) diff += 86400; // overnight handle
-        const hrs = Math.floor(diff / 3600);
-        const mins = Math.floor((diff % 3600) / 60);
-        return `${hrs}h ${mins}m`;
-      } catch (_) {
-        return "-";
-      }
-    }
-
-    // --- TAB SWITCHER ---
+    // ==========================================
+    // TAB NAVIGATION
+    // ==========================================
     function switchTab(tabId) {
       activeTab = tabId;
-      ['daily', 'matrix', 'employee', 'settings'].forEach(t => {
-        const el = document.getElementById(`view-${t}`);
-        const btn = document.getElementById(`tabBtn-${t}`);
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      const activeEl = document.getElementById(`tab-${tabId}`);
+      if (activeEl) activeEl.classList.remove('hidden');
+
+      // Update Nav Colors
+      ['daily', 'monthly', 'individual', 'settings'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
         if (t === tabId) {
-          el.classList.remove('hidden');
-          btn.className = "flex flex-col items-center justify-center py-1 text-indigo-600 transition";
+          btn.classList.remove('text-slate-400');
+          btn.classList.add('text-indigo-600');
         } else {
-          el.classList.add('hidden');
-          btn.className = "flex flex-col items-center justify-center py-1 text-slate-400 hover:text-slate-600 transition";
+          btn.classList.remove('text-indigo-600');
+          btn.classList.add('text-slate-400');
         }
       });
 
-      const titleMap = {
-        daily: { title: "Daily Attendance", sub: "Today's live logs & status" },
-        matrix: { title: "Monthly Team Matrix", sub: "Roster view with weekends & leaves" },
-        employee: { title: "Individual Calendar", sub: "Employee monthly attendance record" },
-        settings: { title: "Settings & Webhook", sub: "Google Sheets sync configuration" }
+      // Update Headers
+      const titleEl = document.getElementById('pageTitle');
+      const subEl = document.getElementById('pageSubtitle');
+      if (tabId === 'daily') {
+        titleEl.innerText = 'Daily Attendance';
+        subEl.innerText = "Today's active logs";
+        renderDailyView();
+      } else if (tabId === 'monthly') {
+        titleEl.innerText = 'Monthly Matrix';
+        subEl.innerText = 'Team-wide attendance grid';
+        renderMatrixView();
+      } else if (tabId === 'individual') {
+        titleEl.innerText = 'Employee Breakdown';
+        subEl.innerText = 'Individual monthly punch logs';
+        populateIndividualDropdown();
+        renderIndividualView();
+      } else if (tabId === 'settings') {
+        titleEl.innerText = 'Settings & Sync';
+        subEl.innerText = 'Sheet bridge and cache controls';
+        updateCacheStats();
+      }
+    }
+
+    function renderAllViews() {
+      renderDailyView();
+      populateIndividualDropdown();
+    }
+
+    // ==========================================
+    // ROSTER & DATA ACCESS
+    // ==========================================
+    function getStoredLogs() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_LOGS)) || [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function getTeamRoster() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY_EMPLOYEES));
+        if (Array.isArray(stored) && stored.length > 0) return stored;
+      } catch (_) {}
+      return DEFAULT_ROSTER;
+    }
+
+    function getEmployeeShift(empName) {
+      const roster = getTeamRoster();
+      const match = roster.find(r => r.name.toLowerCase() === (empName || '').toLowerCase());
+      return match ? (match.shift || 'DAY') : 'DAY';
+    }
+
+    // ==========================================
+    // CORE LOGIC: DAILY STATUS
+    // ==========================================
+    function setDailyFilter(filterKey) {
+      currentDailyFilter = filterKey;
+
+      // Update Pill Styles
+      ['all', 'present', 'leave', 'absent'].forEach(k => {
+        const pill = document.getElementById(`pill-${k}`);
+        if (!pill) return;
+        if (k === filterKey) {
+          pill.className = 'filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shrink-0 active:scale-95 transition';
+        } else {
+          pill.className = 'filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 shrink-0 active:scale-95 transition';
+        }
+      });
+
+      renderDailyView();
+    }
+
+    function handleDailySearch() {
+      dailySearchQuery = (document.getElementById('dailySearchInput').value || '').trim().toLowerCase();
+      renderDailyView();
+    }
+
+    function calculateDailyRecord(emp, selectedDate, logs) {
+      const empLogs = logs.filter(l => {
+        const sameEmp = (l.name || '').toLowerCase() === emp.name.toLowerCase();
+        const sameDate = (l.date === selectedDate);
+        return sameEmp && sameDate;
+      });
+
+      let hasSignIn = false;
+      let hasSignOut = false;
+      let hasLeave = false;
+      let firstIn = '-';
+      let lastOut = '-';
+
+      empLogs.forEach(l => {
+        const type = (l.type || '').toLowerCase();
+        const time = (l.time || '').trim();
+        if (type.includes('in')) {
+          hasSignIn = true;
+          if (firstIn === '-' || time < firstIn) firstIn = time;
+        } else if (type.includes('out')) {
+          hasSignOut = true;
+          if (lastOut === '-' || time > lastOut) lastOut = time;
+        } else if (type.includes('leave')) {
+          hasLeave = true;
+        }
+      });
+
+      // CORE RULE: Sign In OR Sign Out = Present
+      let statusKey = 'absent';
+      let statusLabel = 'Absent / No Log';
+      let badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+
+      if (hasLeave) {
+        statusKey = 'leave';
+        statusLabel = 'On Leave';
+        badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+      } else if (hasSignIn || hasSignOut) {
+        statusKey = 'present';
+        statusLabel = 'Present';
+        badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      }
+
+      // Duration calculation if both available
+      let duration = '-';
+      if (firstIn !== '-' && lastOut !== '-') {
+        duration = calculateTimeDiff(firstIn, lastOut, emp.shift === 'NIGHT');
+      }
+
+      return {
+        emp,
+        statusKey,
+        statusLabel,
+        badgeClass,
+        firstIn,
+        lastOut,
+        duration,
+        logCount: empLogs.length
       };
-
-      document.getElementById('headerTitle').innerText = titleMap[tabId].title;
-      document.getElementById('headerSubtitle').innerText = titleMap[tabId].sub;
-
-      if (tabId === 'daily') renderDailyView();
-      if (tabId === 'matrix') renderMatrixView();
-      if (tabId === 'employee') renderIndividualView();
-      if (tabId === 'settings') updateCacheStats();
-      lucide.createIcons();
     }
 
-    // --- TAB 1: DAILY LIVE VIEW CONTROLLER ---
-    function setTodayDate() {
-      const today = new Date();
-      const y = today.getFullYear();
-      const m = String(today.getMonth() + 1).padStart(2, '0');
-      const d = String(today.getDate()).padStart(2, '0');
-      document.getElementById('dailyDatePicker').value = `${y}-${m}-${d}`;
-      renderDailyView();
-    }
+    function calculateTimeDiff(start, end, isNight) {
+      try {
+        const parseMinutes = (str) => {
+          const parts = str.split(':');
+          let h = parseInt(parts[0], 10);
+          let m = parseInt(parts[1], 10);
+          if (str.toLowerCase().includes('pm') && h < 12) h += 12;
+          if (str.toLowerCase().includes('am') && h === 12) h = 0;
+          return (h * 60) + m;
+        };
 
-    function setFilter(type) {
-      currentActiveFilter = type;
-      ['ALL', 'PRESENT', 'MISSING', 'LEAVE', 'ABSENT'].forEach(f => {
-        const btn = document.getElementById(`flt-${f}`);
-        if (f === type) {
-          btn.className = "px-3 py-1 rounded-full font-semibold bg-indigo-600 text-white shadow-xs";
-        } else {
-          btn.className = "px-3 py-1 rounded-full font-medium bg-slate-200 text-slate-700";
+        let t1 = parseMinutes(start);
+        let t2 = parseMinutes(end);
+        let diff = t2 - t1;
+
+        // Overnight shift adjustment
+        if (diff < 0) {
+          diff += (24 * 60);
         }
-      });
-      renderDailyView();
+
+        const hrs = Math.floor(diff / 60);
+        const mins = diff % 60;
+        return `${hrs}h ${String(mins).padStart(2, '0')}m`;
+      } catch (_) {
+        return '-';
+      }
     }
 
+    // ==========================================
+    // RENDER: DAILY VIEW (COMPACT CARD DESIGN)
+    // ==========================================
     function renderDailyView() {
-      const dateVal = document.getElementById('dailyDatePicker').value;
-      const searchVal = document.getElementById('dailySearch').value.toLowerCase().trim();
-      const allLogs = getStoredLogs();
-
-      // Filter logs for selected date
-      const daysLogs = allLogs.filter(l => normalizeDateString(l.date) === dateVal);
+      const selectedDate = document.getElementById('dailyDatePicker').value;
+      const logs = getStoredLogs();
+      const roster = getTeamRoster();
 
       let presentCount = 0;
-      let missingOutCount = 0;
       let leaveCount = 0;
       let absentCount = 0;
 
-      const employeeStatusList = TEAM_MEMBERS.map(emp => {
-        const empLogs = daysLogs.filter(l => (l.name || "").toLowerCase() === emp.name.toLowerCase());
-        
-        const signIns = empLogs.filter(l => /sign\s*in|in\b/i.test(l.type)).map(l => l.time).sort();
-        const signOuts = empLogs.filter(l => /sign\s*out|out\b/i.test(l.type)).map(l => l.time).sort();
-        const hasLeave = empLogs.some(l => /leave/i.test(l.type));
-
-        const firstIn = signIns.length ? signIns[0] : "-";
-        const lastOut = signOuts.length ? signOuts[signOuts.length - 1] : "-";
-        const duration = calculateDuration(firstIn, lastOut);
-
-        let status = "Absent / No Log";
-        let statusBadgeClass = "bg-slate-100 text-slate-600 border-slate-200";
-        let statusCode = "ABSENT";
-
-        if (hasLeave) {
-          status = "On Leave";
-          statusBadgeClass = "bg-rose-50 text-rose-700 border-rose-200";
-          statusCode = "LEAVE";
-          leaveCount++;
-        } else if (firstIn !== "-" && lastOut !== "-") {
-          status = "Present (Complete)";
-          statusBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
-          statusCode = "PRESENT";
-          presentCount++;
-        } else if (firstIn !== "-" && lastOut === "-") {
-          status = "Missing Sign-Out";
-          statusBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
-          statusCode = "MISSING";
-          missingOutCount++;
-        } else if (firstIn === "-" && lastOut !== "-") {
-          status = "Missing Sign-In";
-          statusBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
-          statusCode = "MISSING";
-          missingOutCount++;
-        } else {
-          absentCount++;
-        }
-
-        return {
-          emp,
-          firstIn,
-          lastOut,
-          duration,
-          status,
-          statusBadgeClass,
-          statusCode
-        };
+      const records = roster.map(emp => {
+        const res = calculateDailyRecord(emp, selectedDate, logs);
+        if (res.statusKey === 'present') presentCount++;
+        else if (res.statusKey === 'leave') leaveCount++;
+        else absentCount++;
+        return res;
       });
 
-      // Update KPI Badges
-      document.getElementById('kpiTotal').innerText = TEAM_MEMBERS.length;
-      document.getElementById('kpiPresent').innerText = presentCount;
-      document.getElementById('kpiMissingOut').innerText = missingOutCount;
-      document.getElementById('kpiLeave').innerText = leaveCount;
-      document.getElementById('kpiAbsent').innerText = absentCount;
+      // Update KPI Numbers
+      document.getElementById('kpi-total').innerText = roster.length;
+      document.getElementById('kpi-present').innerText = presentCount;
+      document.getElementById('kpi-leave').innerText = leaveCount;
+      document.getElementById('kpi-absent').innerText = absentCount;
 
-      // Update Filter Pill Counts
-      document.getElementById('cnt-ALL').innerText = TEAM_MEMBERS.length;
-      document.getElementById('cnt-PRESENT').innerText = presentCount;
-      document.getElementById('cnt-MISSING').innerText = missingOutCount;
-      document.getElementById('cnt-LEAVE').innerText = leaveCount;
-      document.getElementById('cnt-ABSENT').innerText = absentCount;
+      document.getElementById('count-all').innerText = roster.length;
+      document.getElementById('count-present').innerText = presentCount;
+      document.getElementById('count-leave').innerText = leaveCount;
+      document.getElementById('count-absent').innerText = absentCount;
 
-      // Filter for rendering list
-      const filtered = employeeStatusList.filter(item => {
-        const matchesSearch = item.emp.name.toLowerCase().includes(searchVal) || item.emp.id.toLowerCase().includes(searchVal);
-        if (!matchesSearch) return false;
-        if (currentActiveFilter === "ALL") return true;
-        return item.statusCode === currentActiveFilter;
+      // Filter by Active Filter Pill & Search Query
+      const filtered = records.filter(r => {
+        const matchFilter = (currentDailyFilter === 'all') || (r.statusKey === currentDailyFilter);
+        const matchSearch = (!dailySearchQuery) || 
+          r.emp.name.toLowerCase().includes(dailySearchQuery) ||
+          r.emp.id.toLowerCase().includes(dailySearchQuery);
+        return matchFilter && matchSearch;
       });
 
-      // Render Roster
-      const container = document.getElementById('dailyRosterContainer');
+      const container = document.getElementById('dailyListContainer');
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-400">
-            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
-            <p class="text-sm">No employees found for this filter criteria.</p>
+          <div class="bg-white rounded-2xl p-6 text-center border border-slate-200/80">
+            <i class="fa-regular fa-folder-open text-2xl text-slate-300 mb-1"></i>
+            <p class="text-xs text-slate-500 font-medium">No employees match this filter or search.</p>
           </div>
         `;
-        lucide.createIcons();
         return;
       }
 
-      container.innerHTML = filtered.map(item => `
-        <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col space-y-2.5">
-          <div class="flex items-start justify-between">
-            <div>
-              <div class="flex items-center space-x-1.5">
-                <span class="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">${item.emp.id}</span>
-                <h4 class="text-sm font-bold text-slate-900">${item.emp.name}</h4>
+      container.innerHTML = filtered.map(r => {
+        // Compact metrics row: single-line flex bar, saves 60% vertical space
+        const detailsRow = (r.statusKey === 'present')
+          ? `
+            <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 bg-slate-50/80 rounded-xl px-3 py-1.5">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold uppercase text-slate-400">In</span>
+                <span class="font-semibold text-slate-800">${r.firstIn}</span>
               </div>
-              <span class="text-[10px] text-slate-400 font-medium">${item.emp.shift} SHIFT</span>
+              <span class="text-slate-300">•</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold uppercase text-slate-400">Out</span>
+                <span class="font-semibold text-slate-800">${r.lastOut}</span>
+              </div>
+              <span class="text-slate-300">•</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-bold uppercase text-slate-400">Dur</span>
+                <span class="font-semibold text-indigo-700">${r.duration}</span>
+              </div>
             </div>
-            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full border ${item.statusBadgeClass}">
-              ${item.status}
-            </span>
-          </div>
+          `
+          : `
+            <div class="mt-1.5 text-[11px] text-slate-400 italic">
+              ${r.statusKey === 'leave' ? 'Marked on leave for this date' : 'No sign-in or sign-out recorded'}
+            </div>
+          `;
 
-          <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
-            <div class="bg-slate-50 p-1.5 rounded-xl">
-              <span class="text-[10px] text-slate-400 block font-medium">First Sign-In</span>
-              <span class="text-xs font-bold font-mono text-slate-800">${item.firstIn}</span>
+        return `
+          <div class="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs transition active:scale-[0.99]">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-md border border-indigo-100">
+                  ${r.emp.id}
+                </span>
+                <h3 class="font-semibold text-slate-900 text-xs tracking-tight">${r.emp.name}</h3>
+              </div>
+              <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${r.badgeClass}">
+                ${r.statusLabel}
+              </span>
             </div>
-            <div class="bg-slate-50 p-1.5 rounded-xl">
-              <span class="text-[10px] text-slate-400 block font-medium">Last Sign-Out</span>
-              <span class="text-xs font-bold font-mono text-slate-800">${item.lastOut}</span>
-            </div>
-            <div class="bg-slate-50 p-1.5 rounded-xl">
-              <span class="text-[10px] text-slate-400 block font-medium">Duration</span>
-              <span class="text-xs font-bold font-mono text-slate-800">${item.duration}</span>
-            </div>
-          </div>
-        </div>
-      `).join('');
 
-      lucide.createIcons();
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[9px] font-bold tracking-wider ${r.emp.shift === 'NIGHT' ? 'text-purple-600 bg-purple-50' : 'text-amber-600 bg-amber-50'} px-1.5 py-0.2 rounded uppercase">
+                ${r.emp.shift} SHIFT
+              </span>
+            </div>
+
+            ${detailsRow}
+          </div>
+        `;
+      }).join('');
     }
 
-    // --- TAB 2: MONTHLY TEAM MATRIX (Matches User's Screenshot) ---
+    // ==========================================
+    // RENDER: MONTHLY OVERALL MATRIX
+    // ==========================================
     function renderMatrixView() {
-      const monthInput = document.getElementById('matrixMonthPicker').value; // YYYY-MM
+      const monthInput = document.getElementById('matrixMonthPicker').value;
       if (!monthInput) return;
-      const [year, month] = monthInput.split("-").map(Number);
+
+      const [yearStr, monthStr] = monthInput.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10); // 1-indexed
 
       const daysInMonth = new Date(year, month, 0).getDate();
-      const allLogs = getStoredLogs();
+      const roster = getTeamRoster();
+      const logs = getStoredLogs();
 
-      // Day abbreviations
+      const days = [];
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const monthAbbr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month - 1];
-
-      // Build Headers
-      let theadHtml = `
-        <tr class="divide-x divide-slate-200">
-          <th class="sticky-col-1 bg-slate-200 px-2 py-2 w-[38px] z-30">S/N</th>
-          <th class="sticky-col-2 bg-slate-200 px-2 py-2 w-[72px] z-30 text-left">EMP ID</th>
-          <th class="sticky-col-3 bg-slate-200 px-3 py-2 w-[130px] z-30 text-left">NAME</th>
-          <th class="sticky-col-4 bg-slate-200 px-2 py-2 w-[60px] z-30">SHIFT</th>
-      `;
-
-      // Days columns (Row 1: Day of week)
-      for (let day = 1; day <= daysInMonth; day++) {
-        const d = new Date(year, month - 1, day);
-        const dayOfWeek = d.getDay();
-        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-        const headerClass = isWeekend ? "weekend-header" : "bg-slate-100 text-slate-700";
-        theadHtml += `<th class="px-2 py-1 min-w-[38px] ${headerClass}">${dayNames[dayOfWeek]}</th>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dt = new Date(year, month - 1, d);
+        const dayOfWeek = dayNames[dt.getDay()];
+        const isWeekend = (dt.getDay() === 0 || dt.getDay() === 6);
+        const dateISO = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        days.push({ dayNum: d, dayOfWeek, isWeekend, dateISO });
       }
 
-      theadHtml += `
-          <th class="bg-slate-200 px-2 py-1 min-w-[65px]">Double Pays</th>
-          <th class="bg-slate-200 px-2 py-1 min-w-[55px]">Leaves</th>
-        </tr>
-        <tr class="divide-x divide-slate-200 text-[10px] text-slate-500 border-b border-slate-300">
-          <th class="sticky-col-1 bg-slate-100 z-30"></th>
-          <th class="sticky-col-2 bg-slate-100 z-30"></th>
-          <th class="sticky-col-3 bg-slate-100 z-30"></th>
-          <th class="sticky-col-4 bg-slate-100 z-30"></th>
+      // Build Table Header
+      let headerHtml = `
+        <thead class="sticky-header bg-slate-100 text-slate-700 border-b border-slate-200">
+          <tr>
+            <th class="sticky-col-1 py-2 px-1 font-bold w-[40px] border-r border-slate-200 bg-slate-100">S/N</th>
+            <th class="sticky-col-2 py-2 px-1.5 font-bold w-[75px] border-r border-slate-200 bg-slate-100 text-left">EMP ID</th>
+            <th class="sticky-col-3 py-2 px-2 font-bold min-w-[130px] border-r border-slate-200 bg-slate-100 text-left">NAME</th>
+            <th class="py-2 px-2 font-bold min-w-[55px] border-r border-slate-200 bg-slate-100">SHIFT</th>
+            ${days.map(d => `
+              <th class="py-1 px-1 font-bold min-w-[28px] border-r border-slate-200 ${d.isWeekend ? 'bg-rose-50 text-rose-700' : 'bg-slate-100'}">
+                <div class="text-[9px] font-semibold">${d.dayOfWeek}</div>
+                <div class="text-[10px]">${d.dayNum}</div>
+              </th>
+            `).join('')}
+            <th class="py-2 px-2 font-bold min-w-[55px] border-r border-slate-200 bg-slate-100">Double</th>
+            <th class="py-2 px-2 font-bold min-w-[55px] bg-slate-100 text-amber-700">Leaves</th>
+          </tr>
+        </thead>
       `;
 
-      // Row 2: Date label (e.g. Oct-1, Oct-2)
-      for (let day = 1; day <= daysInMonth; day++) {
-        const d = new Date(year, month - 1, day);
-        const isWeekend = (d.getDay() === 0 || d.getDay() === 6);
-        const cellClass = isWeekend ? "weekend-header" : "bg-slate-50 text-slate-600";
-        theadHtml += `<th class="px-1 py-1 ${cellClass}">${monthAbbr}-${day}</th>`;
-      }
+      // Build Table Rows
+      let rowsHtml = roster.map((emp, idx) => {
+        let leaveCount = 0;
+        let presentCount = 0;
 
-      theadHtml += `
-          <th class="bg-slate-100"></th>
-          <th class="bg-slate-100"></th>
-        </tr>
-      `;
+        const cells = days.map(d => {
+          const res = calculateDailyRecord(emp, d.dateISO, logs);
+          let cellText = '';
+          let cellClass = d.isWeekend ? 'bg-slate-100/70 text-slate-400' : 'bg-white';
 
-      document.getElementById('matrixThead').innerHTML = theadHtml;
-
-      // Build Body Rows
-      let tbodyHtml = "";
-
-      TEAM_MEMBERS.forEach((emp, idx) => {
-        let totalLeaves = 0;
-        let totalDoublePays = 0;
-
-        tbodyHtml += `
-          <tr class="divide-x divide-slate-200 hover:bg-slate-50">
-            <td class="sticky-col-1 bg-white font-bold px-1 py-2 text-slate-900">${idx + 1}</td>
-            <td class="sticky-col-2 bg-white font-mono font-semibold px-2 py-2 text-left text-indigo-600">${emp.id}</td>
-            <td class="sticky-col-3 bg-white font-bold px-2 py-2 text-left whitespace-nowrap text-slate-800">${emp.name}</td>
-            <td class="sticky-col-4 bg-white font-semibold px-1 py-2 text-slate-600">${emp.shift}</td>
-        `;
-
-        for (let day = 1; day <= daysInMonth; day++) {
-          const d = new Date(year, month - 1, day);
-          const isWeekend = (d.getDay() === 0 || d.getDay() === 6);
-          const yStr = String(year);
-          const mStr = String(month).padStart(2, '0');
-          const dStr = String(day).padStart(2, '0');
-          const dateKey = `${yStr}-${mStr}-${dStr}`;
-
-          // Find records
-          const dayRecords = allLogs.filter(l => 
-            (l.name || "").toLowerCase() === emp.name.toLowerCase() &&
-            normalizeDateString(l.date) === dateKey
-          );
-
-          const signIns = dayRecords.filter(l => /sign\s*in|in\b/i.test(l.type));
-          const hasLeave = dayRecords.some(l => /leave/i.test(l.type));
-
-          let marker = "";
-          let cellStyle = isWeekend ? "weekend-cell" : "bg-white";
-
-          if (hasLeave) {
-            marker = `<span class="status-badge-l">L</span>`;
-            totalLeaves++;
-          } else if (signIns.length >= 2) {
-            marker = `<span class="status-badge-2p">2P</span>`;
-            totalDoublePays++;
-          } else if (signIns.length === 1) {
-            marker = `<span class="status-badge-p">P</span>`;
+          if (res.statusKey === 'present') {
+            cellText = 'P';
+            cellClass = 'font-bold text-slate-800 bg-white';
+            presentCount++;
+          } else if (res.statusKey === 'leave') {
+            cellText = 'L';
+            cellClass = 'font-bold text-rose-600 bg-rose-50/60';
+            leaveCount++;
           }
 
-          tbodyHtml += `<td class="px-1 py-1.5 ${cellStyle}">${marker}</td>`;
-        }
+          return `<td class="py-1.5 px-0.5 border-r border-b border-slate-200 ${cellClass}">${cellText}</td>`;
+        }).join('');
 
-        tbodyHtml += `
-            <td class="px-2 py-2 font-bold text-slate-700 bg-slate-50">${totalDoublePays}</td>
-            <td class="px-2 py-2 font-bold bg-emerald-100 text-emerald-800">${totalLeaves}</td>
+        return `
+          <tr class="hover:bg-slate-50/50">
+            <td class="sticky-col-1 py-1.5 px-1 border-r border-b border-slate-200 font-semibold bg-white">${idx + 1}</td>
+            <td class="sticky-col-2 py-1.5 px-1.5 border-r border-b border-slate-200 font-bold text-indigo-700 bg-white text-left">${emp.id}</td>
+            <td class="sticky-col-3 py-1.5 px-2 border-r border-b border-slate-200 font-semibold text-slate-900 bg-white text-left whitespace-nowrap">${emp.name}</td>
+            <td class="py-1.5 px-1 border-r border-b border-slate-200 font-bold text-[9px] ${emp.shift === 'NIGHT' ? 'text-purple-600' : 'text-slate-500'} bg-white">${emp.shift}</td>
+            ${cells}
+            <td class="py-1.5 px-1 border-r border-b border-slate-200 font-bold bg-white text-slate-600">0</td>
+            <td class="py-1.5 px-1 border-b border-slate-200 font-bold ${leaveCount > 0 ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50'}">${leaveCount}</td>
           </tr>
         `;
-      });
+      }).join('');
 
-      document.getElementById('matrixTbody').innerHTML = tbodyHtml;
+      document.getElementById('matrixTable').innerHTML = headerHtml + '<tbody>' + rowsHtml + '</tbody>';
     }
 
-    // --- TAB 3: INDIVIDUAL EMPLOYEE VIEW CONTROLLER ---
-    function populateEmpDropdown() {
-      const sel = document.getElementById('empSelector');
-      sel.innerHTML = TEAM_MEMBERS.map(e => `<option value="${e.name}">${e.name} (${e.id})</option>`).join('');
+    // ==========================================
+    // RENDER: INDIVIDUAL BREAKDOWN
+    // ==========================================
+    function populateIndividualDropdown() {
+      const select = document.getElementById('individualEmpSelect');
+      const roster = getTeamRoster();
+      const currentVal = select.value;
+
+      select.innerHTML = roster.map(e => `
+        <option value="${e.name}">${e.name} (${e.id})</option>
+      `).join('');
+
+      if (currentVal && roster.some(e => e.name === currentVal)) {
+        select.value = currentVal;
+      }
     }
 
     function renderIndividualView() {
-      const empName = document.getElementById('empSelector').value;
-      const monthInput = document.getElementById('empMonthPicker').value; // YYYY-MM
+      const empName = document.getElementById('individualEmpSelect').value;
+      const monthInput = document.getElementById('individualMonthPicker').value;
       if (!empName || !monthInput) return;
 
-      const [year, month] = monthInput.split("-").map(Number);
+      const [yearStr, monthStr] = monthInput.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10);
       const daysInMonth = new Date(year, month, 0).getDate();
-      const allLogs = getStoredLogs();
 
-      let weekdaysCount = 0;
-      let daysPresent = 0;
-      let leavesCount = 0;
-      let missingCount = 0;
+      const roster = getTeamRoster();
+      const emp = roster.find(e => e.name === empName) || { name: empName, id: 'EMP', shift: 'DAY' };
+      const logs = getStoredLogs();
 
-      const daysList = [];
+      document.getElementById('ind-shift-badge').innerText = `${emp.shift} SHIFT`;
 
-      for (let day = 1; day <= daysInMonth; day++) {
-        const d = new Date(year, month - 1, day);
-        const dayOfWeek = d.getDay();
-        const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-        if (!isWeekend) weekdaysCount++;
+      let presentDays = 0;
+      let leaveDays = 0;
+      let totalWorkingDays = 0;
 
-        const yStr = String(year);
-        const mStr = String(month).padStart(2, '0');
-        const dStr = String(day).padStart(2, '0');
-        const dateKey = `${yStr}-${mStr}-${dStr}`;
+      let logRows = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dt = new Date(year, month - 1, d);
+        const isSunday = (dt.getDay() === 0);
+        if (!isSunday) totalWorkingDays++;
 
-        const dayRecords = allLogs.filter(l => 
-          (l.name || "").toLowerCase() === empName.toLowerCase() &&
-          normalizeDateString(l.date) === dateKey
-        );
+        const dateISO = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const res = calculateDailyRecord(emp, dateISO, logs);
 
-        const signIns = dayRecords.filter(l => /sign\s*in|in\b/i.test(l.type)).map(l => l.time).sort();
-        const signOuts = dayRecords.filter(l => /sign\s*out|out\b/i.test(l.type)).map(l => l.time).sort();
-        const hasLeave = dayRecords.some(l => /leave/i.test(l.type));
+        if (res.statusKey === 'present') presentDays++;
+        if (res.statusKey === 'leave') leaveDays++;
 
-        const inTime = signIns.length ? signIns[0] : "-";
-        const outTime = signOuts.length ? signOuts[signOuts.length - 1] : "-";
-        const duration = calculateDuration(inTime, outTime);
+        const dateFormatted = `${String(d).padStart(2, '0')} ${dt.toLocaleString('default', { month: 'short' })} (${dt.toLocaleString('default', { weekday: 'short' })})`;
 
-        let badge = "";
-        let badgeColor = "";
-
-        if (hasLeave) {
-          badge = "Leave";
-          badgeColor = "bg-rose-50 text-rose-700 border-rose-200";
-          if (!isWeekend) leavesCount++;
-        } else if (inTime !== "-" && outTime !== "-") {
-          badge = signIns.length >= 2 ? "2P (Double Shift)" : "Present";
-          badgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
-          daysPresent++;
-        } else if (inTime !== "-" || outTime !== "-") {
-          badge = inTime !== "-" ? "Missing Out" : "Missing In";
-          badgeColor = "bg-amber-50 text-amber-700 border-amber-200";
-          missingCount++;
-          daysPresent++;
-        } else {
-          badge = isWeekend ? "Weekend" : "Absent";
-          badgeColor = isWeekend ? "bg-slate-100 text-slate-400 border-slate-200" : "bg-rose-50 text-rose-500 border-rose-200";
-        }
-
-        daysList.push({
-          day,
-          dayName: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dayOfWeek],
-          dateKey,
-          isWeekend,
-          inTime,
-          outTime,
-          duration,
-          badge,
-          badgeColor
-        });
+        logRows.push(`
+          <div class="p-3 flex items-center justify-between text-xs">
+            <div>
+              <div class="font-bold text-slate-800 ${isSunday ? 'text-rose-500' : ''}">${dateFormatted}</div>
+              <div class="text-[11px] text-slate-500 mt-0.5">
+                ${res.statusKey === 'present' ? `In: ${res.firstIn} • Out: ${res.lastOut} • Dur: ${res.duration}` : (res.statusKey === 'leave' ? 'On Leave' : 'No activity logged')}
+              </div>
+            </div>
+            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${res.badgeClass}">
+              ${res.statusLabel}
+            </span>
+          </div>
+        `);
       }
 
-      // Fill summary cards
-      document.getElementById('indWorkingDays').innerText = weekdaysCount;
-      document.getElementById('indDaysPresent').innerText = daysPresent;
-      document.getElementById('indLeaves').innerText = leavesCount;
-      document.getElementById('indMissing').innerText = missingCount;
+      document.getElementById('ind-present-count').innerText = presentDays;
+      document.getElementById('ind-leave-count').innerText = leaveDays;
+      const attPercent = totalWorkingDays > 0 ? ((presentDays / totalWorkingDays) * 100).toFixed(1) : 0;
+      document.getElementById('ind-att-percent').innerText = `${attPercent}%`;
 
-      const rate = weekdaysCount > 0 ? Math.round((daysPresent / weekdaysCount) * 100) : 0;
-      document.getElementById('indRate').innerText = `${rate}%`;
-
-      // Render Days List
-      const container = document.getElementById('indDaysList');
-      container.innerHTML = daysList.map(item => `
-        <div class="py-2.5 flex items-center justify-between ${item.isWeekend ? 'opacity-60 bg-slate-50/70 -mx-3.5 px-3.5' : ''}">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 text-center">
-              <span class="text-sm font-bold text-slate-900 block">${item.day}</span>
-              <span class="text-[10px] font-semibold text-slate-400 uppercase">${item.dayName}</span>
-            </div>
-            <div>
-              <div class="text-xs font-mono text-slate-700 flex items-center gap-1.5">
-                <span>In: <strong>${item.inTime}</strong></span>
-                <span class="text-slate-300">•</span>
-                <span>Out: <strong>${item.outTime}</strong></span>
-              </div>
-              <div class="text-[10px] text-slate-400">Duration: ${item.duration}</div>
-            </div>
-          </div>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.badgeColor}">
-            ${item.badge}
-          </span>
-        </div>
-      `).join('');
+      document.getElementById('individualLogContainer').innerHTML = logRows.join('');
     }
 
-    // --- TAB 4: SETTINGS & GOOGLE SHEET SYNC ---
-    function updateCacheStats() {
-      const logs = getStoredLogs();
-      document.getElementById('cachedRowCount').innerText = logs.length;
-      const lastSync = localStorage.getItem(STORAGE_KEY_SYNC) || "Never";
-      document.getElementById('lastSyncTime').innerText = lastSync;
-      const savedWebhook = localStorage.getItem(STORAGE_KEY_WEBHOOK) || "";
-      document.getElementById('webhookInput').value = savedWebhook;
+    // ==========================================
+    // SYNC & WEBHOOK INTEGRATION
+    // ==========================================
+    function loadStoredWebhook() {
+      const url = localStorage.getItem(STORAGE_KEY_WEBHOOK) || '';
+      document.getElementById('webhookInput').value = url;
     }
 
     function saveWebhookUrl() {
-      const url = document.getElementById('webhookInput').value.trim();
-      localStorage.setItem(STORAGE_KEY_WEBHOOK, url);
-      alert("Webhook URL saved successfully!");
-    }
-
-    function clearCache() {
-      if (confirm("Reset cached attendance data?")) {
-        localStorage.removeItem(STORAGE_KEY_LOGS);
-        localStorage.removeItem(STORAGE_KEY_SYNC);
-        updateCacheStats();
-        renderDailyView();
+      const url = (document.getElementById('webhookInput').value || '').trim();
+      if (!url) {
+        alert('Please enter a valid Apps Script Web App URL.');
+        return;
       }
-    }
-
-    function loadSampleData() {
-      const sample = generateDemoLogs();
-      saveLogs(sample);
-      localStorage.setItem(STORAGE_KEY_SYNC, new Date().toLocaleString());
-      updateCacheStats();
-      renderDailyView();
-      alert("Demo dataset reloaded successfully!");
+      localStorage.setItem(STORAGE_KEY_WEBHOOK, url);
+      alert('Webhook URL saved successfully!');
     }
 
     async function fetchSheetData(isManual = false) {
-      const webhook = localStorage.getItem(STORAGE_KEY_WEBHOOK);
+      const webhook = (localStorage.getItem(STORAGE_KEY_WEBHOOK) || document.getElementById('webhookInput').value || '').trim();
       const syncIcon = document.getElementById('syncIcon');
       const badge = document.getElementById('dataStatusIndicator');
 
       if (!webhook) {
-        if (isManual) {
-          alert("Please enter and save your Apps Script Webhook URL first.");
-        }
+        if (isManual) alert('Please enter and save your Apps Script Webhook URL first in Settings.');
         return;
       }
 
-      syncIcon.classList.add('animate-spin');
-      badge.className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200";
-      badge.innerText = "Syncing...";
+      syncIcon.classList.add('fa-spin');
+      badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200';
+      badge.innerText = 'Syncing...';
 
       try {
-        const resp = await fetch(webhook);
+        const resp = await fetch(webhook, {
+          method: 'GET',
+          redirect: 'follow'
+        });
+
+        if (!resp.ok) {
+          throw new Error('HTTP error ' + resp.status);
+        }
+
         const data = await resp.json();
-        
-        if (Array.isArray(data)) {
-          // Normalize received sheet rows
-          const parsed = data.map(row => ({
-            date: normalizeDateString(row.date || row.Date || row[5] || row[0]),
-            name: (row.name || row.officialName || row[1] || "").trim(),
-            type: (row.type || row.status || row[2] || "").trim(),
-            time: (row.time || row[6] || "").trim()
+
+        // Handle both direct array and wrapped { success: true, records: [...] }
+        const rows = Array.isArray(data) ? data : (data.records || []);
+
+        if (rows.length > 0) {
+          // Normalize and save logs
+          const parsed = rows.map(r => ({
+            date: normalizeDateString(r.date || r.Date || r[0]),
+            name: (r.name || r.officialName || r[1] || '').trim(),
+            type: (r.type || r.status || r[2] || '').trim(),
+            time: (r.time || r[6] || '').trim(),
+            shift: (r.shift || getEmployeeShift(r.name || r.officialName || r[1]) || 'DAY').toUpperCase()
           }));
+
           saveLogs(parsed);
-          localStorage.setItem(STORAGE_KEY_SYNC, new Date().toLocaleTimeString());
-          badge.className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200";
-          badge.innerText = "Live";
+
+          // If employees array is passed, update employee roster
+          if (Array.isArray(data.employees) && data.employees.length > 0) {
+            const dynamicRoster = data.employees.map((name, i) => ({
+              id: DEFAULT_ROSTER[i] ? DEFAULT_ROSTER[i].id : `EMP${String(i+1).padStart(3, '0')}`,
+              name: name,
+              shift: getEmployeeShift(name)
+            }));
+            localStorage.setItem(STORAGE_KEY_EMPLOYEES, JSON.stringify(dynamicRoster));
+          }
+
+          const syncTime = new Date().toLocaleTimeString();
+          localStorage.setItem(STORAGE_KEY_SYNC, syncTime);
+
+          badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+          badge.innerText = 'Live';
+
+          updateCacheStats();
+          renderAllViews();
+
           if (isManual) alert(`Synchronized ${parsed.length} records successfully!`);
         } else {
-          badge.className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-700 border border-slate-200";
-          badge.innerText = "Webhook OK";
+          badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200';
+          badge.innerText = 'Webhook OK';
+          if (isManual) alert('Webhook connected successfully, but returned 0 rows.');
         }
       } catch (err) {
-        console.warn("Could not fetch remote sheet, fallback to local cache:", err);
-        badge.className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-50 text-rose-700 border border-rose-200";
-        badge.innerText = "Offline Mode";
-        if (isManual) alert("Error connecting to sheet. Verify the Web App URL allows access to 'Anyone'.");
+        console.warn('Sync failed:', err);
+        badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200';
+        badge.innerText = 'Offline Mode';
+        if (isManual) alert('Error connecting to sheet: ' + err.message + '\nVerify deployment access is set to "Anyone".');
       } finally {
-        syncIcon.classList.remove('animate-spin');
+        syncIcon.classList.remove('fa-spin');
+      }
+    }
+
+    function normalizeDateString(raw) {
+      if (!raw) return '';
+      const clean = String(raw).trim();
+      // Already YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+      // DD-MM-YY or DD-MM-YYYY
+      const m = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+      if (m) {
+        let day = m[1].padStart(2, '0');
+        let month = m[2].padStart(2, '0');
+        let yr = m[3];
+        if (yr.length === 2) yr = '20' + yr;
+        return `${yr}-${month}-${day}`;
+      }
+      return clean;
+    }
+
+    function saveLogs(logs) {
+      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+    }
+
+    function updateCacheStats() {
+      const logs = getStoredLogs();
+      const lastSync = localStorage.getItem(STORAGE_KEY_SYNC) || 'Never';
+      const countEl = document.getElementById('cacheCountText');
+      const syncEl = document.getElementById('lastSyncText');
+      if (countEl) countEl.innerText = logs.length;
+      if (syncEl) syncEl.innerText = lastSync;
+    }
+
+    function clearCache() {
+      if (confirm('Clear all cached attendance logs from your phone?')) {
+        localStorage.removeItem(STORAGE_KEY_LOGS);
+        localStorage.removeItem(STORAGE_KEY_SYNC);
         updateCacheStats();
-        if (activeTab === 'daily') renderDailyView();
-        if (activeTab === 'matrix') renderMatrixView();
-        if (activeTab === 'employee') renderIndividualView();
+        renderAllViews();
+        alert('Cache cleared.');
       }
     }
 
-    function refreshData() {
-      fetchSheetData(false);
-    }
-
-    // --- INITIALIZATION ON LOAD ---
-    window.addEventListener('DOMContentLoaded', () => {
-      // Set current date defaults
+    // ==========================================
+    // DEMO DATASET GENERATOR
+    // ==========================================
+    function loadSampleDataset(showAlert = true) {
       const today = new Date();
-      const y = today.getFullYear();
-      const m = String(today.getMonth() + 1).padStart(2, '0');
-      const d = String(today.getDate()).padStart(2, '0');
+      const sampleLogs = [];
+      const roster = getTeamRoster();
 
-      document.getElementById('dailyDatePicker').value = `${y}-${m}-${d}`;
-      document.getElementById('matrixMonthPicker').value = `${y}-${m}`;
-      document.getElementById('empMonthPicker').value = `${y}-${m}`;
+      for (let offset = 0; offset <= 7; offset++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - offset);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const dateISO = `${yyyy}-${mm}-${dd}`;
 
-      populateEmpDropdown();
-      updateCacheStats();
-      renderDailyView();
-      lucide.createIcons();
+        roster.forEach(emp => {
+          const rand = Math.random();
+          if (rand > 0.3) {
+            // Present: Sign In and Out
+            const isNight = (emp.shift === 'NIGHT');
+            const inTime = isNight ? '18:45:00' : '08:30:00';
+            const outTime = isNight ? '05:15:00' : '17:45:00';
 
-      // Attempt silent background sync if webhook exists
-      if (localStorage.getItem(STORAGE_KEY_WEBHOOK)) {
-        fetchSheetData(false);
+            sampleLogs.push({
+              date: dateISO,
+              name: emp.name,
+              type: 'Sign In',
+              time: inTime,
+              shift: emp.shift
+            });
+            sampleLogs.push({
+              date: dateISO,
+              name: emp.name,
+              type: 'Sign Out',
+              time: outTime,
+              shift: emp.shift
+            });
+          } else if (rand > 0.15) {
+            // Present with only Sign In
+            sampleLogs.push({
+              date: dateISO,
+              name: emp.name,
+              type: 'Sign In',
+              time: '08:45:00',
+              shift: emp.shift
+            });
+          } else if (rand > 0.08) {
+            // On Leave
+            sampleLogs.push({
+              date: dateISO,
+              name: emp.name,
+              type: 'Leave',
+              time: '09:00:00',
+              shift: emp.shift
+            });
+          }
+        });
       }
-    });
+
+      saveLogs(sampleLogs);
+      localStorage.setItem(STORAGE_KEY_SYNC, 'Sample Loaded');
+      updateCacheStats();
+      renderAllViews();
+      if (showAlert) alert('Loaded ' + sampleLogs.length + ' sample records for testing.');
+    }
   </script>
 </body>
 </html>
